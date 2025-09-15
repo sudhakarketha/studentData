@@ -8,6 +8,8 @@ services:
     envVars:
       - key: PYTHON_VERSION
         value: 3.9.0
+      - key: PYTHONUNBUFFERED
+        value: true
       - key: RENDER
         value: true
       - key: SECRET_KEY
