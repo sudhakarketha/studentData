@@ -1,0 +1,143 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard - Student Management System{% endblock %}
+
+{% block extra_css %}
+<style>
+    .search-container {
+        margin-bottom: 20px;
+    }
+    .status-badge {
+        padding: 5px 10px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: bold;
+    }
+    .status-present {
+        background-color: #28a745;
+        color: white;
+    }
+    .status-absent {
+        background-color: #dc3545;
+        color: white;
+    }
+    .action-buttons {
+        display: flex;
+        gap: 5px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                <h4 class="mb-0"><i class="fas fa-tachometer-alt"></i> Dashboard</h4>
+                <a href="{{ url_for('add_student') }}" class="btn btn-success btn-sm">
+                    <i class="fas fa-user-plus"></i> Add New Student
+                </a>
+            </div>
+            <div class="card-body">
+                <div class="search-container">
+                    <form action="{{ url_for('search') }}" method="GET" class="row g-3">
+                        <div class="col-md-6">
+                            <input type="text" name="query" class="form-control" placeholder="Search..." value="{{ query if query else '' }}">
+                        </div>
+                        <div class="col-md-3">
+                            <select name="filter_by" class="form-select">
+                                <option value="name" {% if filter_by == 'name' %}selected{% endif %}>Search by Name</option>
+                                <option value="class" {% if filter_by == 'class' %}selected{% endif %}>Search by Class</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <button type="submit" class="btn btn-primary w-100">
+                                <i class="fas fa-search"></i> Search
+                            </button>
+                        </div>
+                    </form>
+                </div>
+                
+                {% if students %}
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>ID</th>
+                                <th>Name</th>
+                                <th>Father's Name</th>
+                                <th>Class</th>
+                                <th>Phone</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for student in students %}
+                            <tr>
+                                <td>{{ student.id }}</td>
+                                <td>{{ student.name }}</td>
+                                <td>{{ student.father_name }}</td>
+                                <td>{{ student.class_name }}</td>
+                                <td>{{ student.phone }}</td>
+                                <td>
+                                    <span class="status-badge status-{{ student.status }}">
+                                        {{ student.status.upper() }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <div class="action-buttons">
+                                        <form action="{{ url_for('update_status', id=student.id) }}" method="POST" class="d-inline">
+                                            <input type="hidden" name="status" value="{% if student.status == 'present' %}absent{% else %}present{% endif %}">
+                                            <button type="submit" class="btn btn-sm {% if student.status == 'present' %}btn-danger{% else %}btn-success{% endif %}" title="Mark as {% if student.status == 'present' %}Absent{% else %}Present{% endif %}">
+                                                <i class="fas {% if student.status == 'present' %}fa-user-times{% else %}fa-user-check{% endif %}"></i>
+                                            </button>
+                                        </form>
+                                        <a href="{{ url_for('edit_student', id=student.id) }}" class="btn btn-warning btn-sm" title="Edit">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                        <a href="{{ url_for('delete_student', id=student.id) }}" class="btn btn-danger btn-sm" title="Delete" onclick="return confirm('Are you sure you want to delete this student?')">
+                                            <i class="fas fa-trash"></i>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                <div class="mt-3">
+                    <a href="{{ url_for('export_pdf') }}" class="btn btn-primary">
+                        <i class="fas fa-file-pdf"></i> Export to PDF
+                    </a>
+                </div>
+                {% else %}
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle"></i> No students found. <a href="{{ url_for('add_student') }}">Add a new student</a>.
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // JavaScript for handling attendance status changes with confirmation
+    document.addEventListener('DOMContentLoaded', function() {
+        const statusForms = document.querySelectorAll('form[action^="/update_status/"]');
+        
+        statusForms.forEach(form => {
+            form.addEventListener('submit', function(e) {
+                const statusInput = this.querySelector('input[name="status"]');
+                if (statusInput.value === 'absent') {
+                    if (!confirm('Are you sure you want to mark this student as absent? An SMS notification will be sent to their contact number.')) {
+                        e.preventDefault();
+                    }
+                }
+            });
+        });
+    });
+</script>
+{% endblock %}
