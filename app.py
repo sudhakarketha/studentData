@@ -10,7 +10,11 @@ from reportlab.lib import colors
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle
 import json
 import os
+import pymysql
 from dotenv import load_dotenv
+
+# Configure PyMySQL as the driver for MySQL
+pymysql.install_as_MySQLdb()
 
 # Load environment variables
 load_dotenv()
@@ -18,7 +22,20 @@ load_dotenv()
 # Initialize Flask app
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'default-secret-key')
-app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:///students.db')
+
+# Configure database URI
+database_url = os.environ.get('DATABASE_URL')
+
+# If running on Render, adjust the database URL if needed
+if 'RENDER' in os.environ:
+    # Use the DATABASE_URL from environment variables
+    pass
+else:
+    # Use the DATABASE_URL from .env file or fallback to SQLite
+    if not database_url:
+        database_url = 'sqlite:///students.db'
+
+app.config['SQLALCHEMY_DATABASE_URI'] = database_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 # Initialize database
