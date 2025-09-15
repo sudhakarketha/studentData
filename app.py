@@ -106,7 +106,16 @@ def register():
 @login_required
 def dashboard():
     students = Student.query.all()
-    return render_template('dashboard.html', students=students)
+    
+    # Count students by status
+    present_count = Student.query.filter_by(status='present').count()
+    absent_count = Student.query.filter_by(status='absent').count()
+    
+    return render_template('dashboard.html', 
+                           students=students, 
+                           present_count=present_count, 
+                           absent_count=absent_count, 
+                           status_filter='all')
 
 @app.route('/add_student', methods=['GET', 'POST'])
 @login_required
@@ -192,15 +201,36 @@ def update_status(id):
 def search():
     query = request.args.get('query', '')
     filter_by = request.args.get('filter_by', 'name')
+    status_filter = request.args.get('status_filter', 'all')
     
-    if filter_by == 'name':
-        students = Student.query.filter(Student.name.contains(query)).all()
-    elif filter_by == 'class':
-        students = Student.query.filter(Student.class_name.contains(query)).all()
-    else:
-        students = Student.query.all()
+    # Start with base query
+    student_query = Student.query
     
-    return render_template('dashboard.html', students=students, query=query, filter_by=filter_by)
+    # Apply status filter if not 'all'
+    if status_filter != 'all':
+        student_query = student_query.filter(Student.status == status_filter)
+    
+    # Apply search filter
+    if query:
+        if filter_by == 'name':
+            student_query = student_query.filter(Student.name.contains(query))
+        elif filter_by == 'class':
+            student_query = student_query.filter(Student.class_name.contains(query))
+    
+    # Get results
+    students = student_query.all()
+    
+    # Count students by status for the current filter
+    present_count = Student.query.filter_by(status='present').count()
+    absent_count = Student.query.filter_by(status='absent').count()
+    
+    return render_template('dashboard.html', 
+                           students=students, 
+                           query=query, 
+                           filter_by=filter_by, 
+                           status_filter=status_filter,
+                           present_count=present_count,
+                           absent_count=absent_count)
 
 @app.route('/export_pdf')
 @login_required
@@ -208,7 +238,14 @@ def export_pdf():
     from io import BytesIO
     from flask import send_file
     
-    students = Student.query.all()
+    # Get filter parameters from request
+    status_filter = request.args.get('status_filter', 'all')
+    
+    # Apply status filter if not 'all'
+    if status_filter != 'all':
+        students = Student.query.filter(Student.status == status_filter).all()
+    else:
+        students = Student.query.all()
     
     # Create a PDF file
     buffer = BytesIO()
